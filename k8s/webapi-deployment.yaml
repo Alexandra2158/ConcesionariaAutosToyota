@@ -1,0 +1,82 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: toyota-webapi
+  namespace: default
+  labels:
+    app: toyota-webapi
+
+spec:
+  replicas: 2
+
+  selector:
+    matchLabels:
+      app: toyota-webapi
+
+  template:
+    metadata:
+      labels:
+        app: toyota-webapi
+
+    spec:
+      containers:
+
+      - name: webapi
+
+        image: concesionariaautostoyota-webapi:latest
+        imagePullPolicy: IfNotPresent
+
+        ports:
+        - containerPort: 8080
+
+        envFrom:
+        - configMapRef:
+            name: toyota-config
+
+        env:
+
+        - name: ConnectionStrings__DefaultConnection
+          valueFrom:
+            secretKeyRef:
+              name: toyota-secrets
+              key: DB_CONNECTION
+
+        - name: JwtSettings__SecretKey
+          valueFrom:
+            secretKeyRef:
+              name: toyota-secrets
+              key: JWT_SECRET_KEY
+
+        readinessProbe:
+          httpGet:
+            path: /swagger
+            port: 8080
+          initialDelaySeconds: 20
+          periodSeconds: 10
+
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "250m"
+
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: webapi-service
+  namespace: default
+
+spec:
+  selector:
+    app: toyota-webapi
+
+  ports:
+  - port: 80
+    targetPort: 8080
+
+  type: NodePort

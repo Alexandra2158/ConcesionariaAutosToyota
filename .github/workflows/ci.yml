@@ -1,0 +1,106 @@
+name: CI/CD — ConcesionariaAutosToyota
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+
+env:
+  DOTNET_VERSION: '8.0.x'
+  IMAGE_NAME: toyota-webapi
+
+jobs:
+  # ── JOB 1: Build + Test ─────────────────────────────────────────────────────
+  build-and-test:
+    name: Build & Unit Tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout código
+        uses: actions/checkout@v4
+
+      - name: Configurar .NET 8
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: Restaurar dependencias
+        run: dotnet restore ConcesionariaAutosToyota.sln
+
+      - name: Compilar solución
+        run: dotnet build ConcesionariaAutosToyota.sln --no-restore -c Release
+
+      - name: Ejecutar pruebas unitarias
+        run: dotnet test tests/ConcesionariaAutosToyota.Tests/ --no-build \
+             -c Release --verbosity normal \
+             --logger "trx;LogFileName=test-results.trx" \
+             --collect:"XPlat Code Coverage"
+
+      - name: Publicar resultados de pruebas
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: test-results
+          path: "**/test-results.trx"
+
+  # ── JOB 2: Docker Build ─────────────────────────────────────────────────────
+  docker-build:
+    name: Build Docker Image
+    runs-on: ubuntu-latest
+    needs: build-and-test
+
+    steps:
+      - name: Checkout código
+        uses: actions/checkout@v4
+
+      - name: Configurar Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build imagen Docker
+        run: |
+          docker build \
+            -f src/Services.WebApi/Dockerfile \
+            -t ${{ env.IMAGE_NAME }}:${{ github.sha }} \
+            -t ${{ env.IMAGE_NAME }}:latest \
+            .
+          echo "✅ Imagen construida: ${{ env.IMAGE_NAME }}:${{ github.sha }}"
+
+      - name: Verificar imagen
+        run: docker images | grep ${{ env.IMAGE_NAME }}
+
+  # ── JOB 3: Deploy a K8s local (simulado) ────────────────────────────────────
+  deploy:
+    name: Deploy to K8s (local)
+    runs-on: ubuntu-latest
+    needs: docker-build
+    if: github.ref == 'refs/heads/main'
+
+    steps:
+      - name: Checkout código
+        uses: actions/checkout@v4
+
+      - name: Configurar kubectl
+        uses: azure/setup-kubectl@v4
+
+      - name: Aplicar ConfigMaps y Secrets
+        run: |
+          echo "📋 Aplicando ConfigMap y Secrets..."
+          # kubectl apply -f k8s/configmap.yaml
+          # kubectl apply -f k8s/secret.yaml
+          echo "✅ ConfigMap y Secrets aplicados (simulado en CI)"
+
+      - name: Aplicar manifiestos K8s
+        run: |
+          echo "🚀 Desplegando en Kubernetes..."
+          # kubectl apply -f k8s/sqlserver-deployment.yaml
+          # kubectl apply -f k8s/rabbitmq-deployment.yaml
+          # kubectl apply -f k8s/webapi-deployment.yaml
+          echo "✅ Deploy aplicado (simulado en CI)"
+
+      - name: Verificar pods
+        run: |
+          echo "🔍 Verificando pods..."
+          # kubectl get pods
+          echo "✅ kubectl get pods — ejecutar en cluster real"
+          echo "Pipeline completado exitosamente ✅"

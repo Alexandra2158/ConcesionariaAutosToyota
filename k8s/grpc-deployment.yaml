@@ -1,0 +1,62 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: toyota-grpc
+  labels:
+    app: toyota-grpc
+
+spec:
+  replicas: 1
+
+  selector:
+    matchLabels:
+      app: toyota-grpc
+
+  template:
+    metadata:
+      labels:
+        app: toyota-grpc
+
+    spec:
+      containers:
+
+      - name: grpcservice
+
+        image: concesionariaautostoyota-grpcservice:latest
+        imagePullPolicy: IfNotPresent
+
+        ports:
+        - containerPort: 8081
+
+        env:
+        - name: ConnectionStrings__DefaultConnection
+          valueFrom:
+            secretKeyRef:
+              name: toyota-secrets
+              key: DB_CONNECTION
+
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "250m"
+
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: grpc-service
+
+spec:
+  selector:
+    app: toyota-grpc
+
+  ports:
+  - port: 8081
+    targetPort: 8081
+
+  type: ClusterIP

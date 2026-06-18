@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: toyota-config
+  namespace: default
+data:
+  ASPNETCORE_ENVIRONMENT: "Production"
+  JwtSettings__Issuer: "ConcesionariaAutosToyota"
+  JwtSettings__Audience: "ConcesionariaClients"
+  RabbitMQ__Host: "rabbitmq-service"
+  RabbitMQ__User: "guest"

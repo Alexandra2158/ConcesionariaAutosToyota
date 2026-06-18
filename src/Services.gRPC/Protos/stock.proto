@@ -1,0 +1,33 @@
+syntax = "proto3";
+
+option csharp_namespace = "ConcesionariaAutosToyota.Trade.Services.gRPC";
+
+package stock;
+
+// Servicio gRPC para consulta de inventario interno
+service StockGrpcService {
+  rpc GetAllStocks (GetAllStocksRequest) returns (GetAllStocksResponse);
+  rpc GetStockById (GetStockByIdRequest) returns (StockReply);
+}
+
+message GetAllStocksRequest {}
+
+message GetAllStocksResponse {
+  repeated StockReply stocks = 1;
+}
+
+message GetStockByIdRequest {
+  int32 id = 1;
+}
+
+message StockReply {
+  int32 id = 1;
+  string modelo = 2;
+  string marca = 3;
+  int32 anio = 4;
+  string color = 5;
+  double precio = 6;
+  int32 cantidad = 7;
+  string numero_vin = 8;
+  bool disponible = 9;
+}
